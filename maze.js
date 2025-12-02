@@ -131,6 +131,42 @@ class Cell {
         let neighbors = [];
 
         // TODO: Tjek om naboen nord for, hvis den findes, har en væg
+        if (this.y > 0) {
+            const north_x = this.x;
+            const north_y = this.y - 1;
+            const north_nabo = grid[north_x][north_y];
+            if (!north_nabo.visited && !this.walls.top) {
+                neighbors.push(north_nabo);
+            }
+        }
+
+        if (this.x < grid.length - 1) {
+            const east_x = this.x + 1;
+            const east_y = this.y;
+            const east_nabo = grid[east_x][east_y];
+            if (!east_nabo.visited && !this.walls.right) {
+                neighbors.push(east_nabo);
+            }
+        }
+
+        if (this.y < grid[0].length - 1) {
+            const south_x = this.x;
+            const south_y = this.y + 1;
+            const south_nabo = grid[south_x][south_y];
+            if (!south_nabo.visited && !this.walls.bottom) {
+                neighbors.push(south_nabo);
+            }
+        }
+
+        if (this.x > 0) {
+            const west_x = this.x - 1;
+            const west_y = this.y;
+            const west_nabo = grid[west_x][west_y];
+            if (!west_nabo.visited && !this.walls.left) {
+                neighbors.push(west_nabo);
+            }
+        }
+
         // TODO: Tjek om naboen til venstre, hvis den findes, har en væg
         // TODO: Tjek om naboen syd for, hvis den findes, har en væg
         // TODO: Tjek om naboen til højre, hvis den findes, har en væg
@@ -147,10 +183,22 @@ class Cell {
     drawPath(ctx, cellWidth, color = '#ff0000') {
         // TODO: Personliggør denne funktion.
         ctx.fillStyle = color;
-        const px = this.x * cellWidth + cellWidth * 0.25;
-        const py = this.y * cellWidth + cellWidth * 0.25;
-        const size = cellWidth * 0.5;
-        ctx.fillRect(px, py, size, size);
+        const colors = ["red","orange","yellow","green","blue","purple"];
+
+        ctx.strokeStyle = colors[randomInteger(0, colors.length)];
+
+        const px = this.x * cellWidth + cellWidth * 0.5;
+
+        const py = this.y * cellWidth + cellWidth * 0.5;
+        ctx.beginPath();
+        if(this.x === 0 && this.y === 0) {
+            ctx.moveTo( cellWidth * 0.5, cellWidth * 0.5);
+        }
+        else{
+            ctx.moveTo(this.parent.x * cellWidth + cellWidth * 0.5, this.parent.y * cellWidth + cellWidth * 0.5);
+        }
+        ctx.lineTo(px, py);
+        ctx.stroke();
     }
 }
 
@@ -229,7 +277,7 @@ class MazeSolver {
         }
     }
 
-    findPath(startX, startY, endX, endY) {
+    findPath(startX, startY, endX, endY, grid) {
         this.resetPathfindingState();
 
         const startCell = this.maze.grid[startX][startY];
@@ -237,7 +285,31 @@ class MazeSolver {
 
         // TODO: Lav `findPath()` vha. enten DFS (stak) eller BFS (queue)
 
-        return null;
+        if (this.recursiveDFS(startCell, endCell, grid)){
+            console.log("Found path");
+            return this.reconstructPath(startCell, endCell);
+        }
+        return false;
+    }
+
+    recursiveDFS(curCell, endCell, grid) {
+        console.log(curCell.x, ", ", curCell.y,);
+        curCell.visited = true;
+
+        if (curCell === endCell){
+            return true;
+        }
+
+        const neighbors = curCell.connectedNeighbors(grid)
+
+        for(let i = 0; i < neighbors.length; i++) {
+            neighbors[i].parent = curCell;
+            if(this.recursiveDFS(neighbors[i], endCell, grid)){
+                console.log("Found end  cell");
+                return true;
+            }
+        }
+        return false;
     }
 
     reconstructPath(startCell, endCell) {
@@ -289,7 +361,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const endX = maze.cols - 1;
     const endY = maze.rows - 1;
 
-    solver.findPath(startX, startY, endX, endY);
+    const path = solver.findPath(startX, startY, endX, endY, maze.grid);
+
     solver.drawPathStepwise(path, '#ff0000', 20);
 
     console.log(maze);
